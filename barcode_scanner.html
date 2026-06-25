@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="light">
+<title>條碼掃描記錄工具</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#f5f4f0!important;color:#2c2c2a!important;min-height:100vh;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif;}
+.app{max-width:480px;margin:0 auto;padding:12px 14px 32px;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ── Scene select ── */
+.page-title{font-size:17px;font-weight:600;color:#2c2c2a;margin-bottom:4px;padding-top:12px;}
+.page-sub{font-size:13px;color:#888780;margin-bottom:16px;}
+.scene-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;margin-bottom:10px;background:#fff;border:0.5px solid #d3d1c7;border-radius:14px;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent;}
+.scene-btn:active{background:#f1efe8;}
+.scene-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.scene-btn-label{font-size:14px;font-weight:600;color:#2c2c2a;margin-bottom:2px;}
+.scene-btn-desc{font-size:12px;color:#888780;}
+.day-summary-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 16px;background:#fff;border:0.5px solid #d3d1c7;border-radius:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-top:6px;}
+.day-summary-btn:active{background:#f1efe8;}
+.day-summary-label{font-size:13px;font-weight:500;color:#2c2c2a;}
+.day-summary-count{font-size:12px;color:#888780;}
+
+/* ── Top bar ── */
+.top-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-top:8px;}
+.back-btn{width:34px;height:34px;background:#fff;border:0.5px solid #d3d1c7;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#5f5e5a;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.top-bar-title{font-size:15px;font-weight:600;color:#2c2c2a;flex:1;}
+.badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;white-space:nowrap;}
+.badge-stock{background:#eaf3de;color:#3b6d11;}
+.badge-arrival{background:#e6f1fb;color:#185fa5;}
+.badge-transfer{background:#faeeda;color:#854f0b;}
+
+/* ── Form ── */
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;color:#5f5e5a;margin-bottom:4px;font-weight:500;}
+.field select,.field input[type="date"],.field input[type="text"]{width:100%;padding:9px 11px;font-size:14px;border:0.5px solid #b4b2a9;border-radius:9px;background:#fff;color:#2c2c2a;}
+.field select{appearance:auto;-webkit-appearance:auto;}
+.field select:focus,.field input:focus{outline:none;border-color:#1d9e75;box-shadow:0 0 0 2px rgba(29,158,117,0.15);}
+.req-tag{font-size:10px;color:#a32d2d;margin-left:4px;}
+.next-btn{width:100%;padding:13px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;border:none;background:#1d9e75;color:#fff;-webkit-tap-highlight-color:transparent;}
+.next-btn:active{background:#0f6e56;}
+
+/* ── Info strip ── */
+.info-strip{background:#fff;border-radius:10px;border:0.5px solid #d3d1c7;padding:10px 14px;margin-bottom:14px;}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;color:#888780;}
+.info-val{color:#2c2c2a;font-weight:500;text-align:right;max-width:65%;word-break:break-all;}
+
+/* ── Camera ── */
+.cam-toggle-btn{width:100%;padding:10px;background:#fff;border:0.5px solid #d3d1c7;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;color:#2c2c2a;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent;}
+.cam-toggle-btn:active{background:#f1efe8;}
+.cam-toggle-btn.on{background:#eaf3de;border-color:#9fe1cb;color:#0f6e56;}
+.camera-wrap{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#1a1a1a;margin-bottom:12px;display:none;}
+.camera-wrap.active{display:block;}
+#camera-video{width:100%;display:block;max-height:220px;object-fit:cover;}
+.camera-overlay{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.scan-frame{width:200px;height:90px;border:2px solid rgba(29,158,117,0.9);border-radius:8px;box-shadow:0 0 0 1000px rgba(0,0,0,0.38);}
+.camera-hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.75);}
+
+/* ── Scan input ── */
+.scan-row{display:flex;gap:8px;margin-bottom:10px;}
+.scan-input{flex:1;padding:11px 13px;font-size:15px;border:1.5px solid #1d9e75;border-radius:10px;background:#fff;color:#2c2c2a;}
+.scan-input:focus{outline:none;box-shadow:0 0 0 2px rgba(29,158,117,0.2);}
+.scan-add-btn{padding:11px 14px;background:#1d9e75;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.scan-add-btn:active{background:#0f6e56;}
+.qty-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.qty-label{font-size:13px;color:#5f5e5a;}
+.qty-btn{width:32px;height:32px;border:0.5px solid #b4b2a9;border-radius:8px;background:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#2c2c2a;-webkit-tap-highlight-color:transparent;}
+.qty-num{font-size:16px;font-weight:600;min-width:28px;text-align:center;color:#2c2c2a;}
+
+/* ── Item list ── */
+.divider{height:0.5px;background:#d3d1c7;margin:14px 0;}
+.list-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.list-label{font-size:13px;font-weight:500;color:#5f5e5a;}
+.clear-btn{font-size:12px;color:#888780;background:none;border:none;cursor:pointer;padding:4px;}
+.item-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;margin-bottom:14px;}
+.item-row{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#fff;border:0.5px solid #d3d1c7;border-radius:9px;}
+.item-barcode{flex:1;font-size:13px;font-family:monospace;color:#2c2c2a;word-break:break-all;line-height:1.3;}
+.item-qty-wrap{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.iq-btn{width:26px;height:26px;border:0.5px solid #b4b2a9;border-radius:6px;background:#f1efe8;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:#2c2c2a;-webkit-tap-highlight-color:transparent;}
+.iq-num{font-size:13px;font-weight:600;min-width:22px;text-align:center;color:#2c2c2a;}
+.item-del{background:none;border:none;cursor:pointer;color:#b4b2a9;font-size:18px;padding:2px 4px;-webkit-tap-highlight-color:transparent;}
+.empty-state{text-align:center;padding:28px 0;color:#b4b2a9;font-size:13px;}
+.empty-icon{font-size:32px;margin-bottom:6px;}
+
+/* ── Bottom bar (scanner) ── */
+.bottom-bar{display:flex;gap:8px;}
+.home-btn{width:44px;height:44px;background:#fff;border:0.5px solid #d3d1c7;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#5f5e5a;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.finish-btn{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:#1d9e75;color:#fff;border:none;-webkit-tap-highlight-color:transparent;}
+.finish-btn:active{background:#0f6e56;}
+
+/* ── Day list ── */
+.search-wrap{position:relative;margin-bottom:12px;}
+.search-input{width:100%;padding:9px 11px 9px 34px;font-size:14px;border:0.5px solid #b4b2a9;border-radius:9px;background:#fff;color:#2c2c2a;}
+.search-input:focus{outline:none;border-color:#1d9e75;box-shadow:0 0 0 2px rgba(29,158,117,0.15);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;}
+.doc-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.doc-card{background:#fff;border:0.5px solid #d3d1c7;border-radius:12px;padding:12px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.doc-card:active{background:#f1efe8;}
+.doc-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.doc-card-id{font-size:13px;font-weight:600;color:#2c2c2a;}
+.doc-card-time{font-size:11px;color:#888780;}
+.doc-card-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.doc-card-count{font-size:12px;color:#5f5e5a;}
+.search-hit{font-size:11px;color:#185fa5;background:#e6f1fb;padding:2px 7px;border-radius:99px;}
+.upload-bar{display:flex;gap:8px;padding-top:4px;}
+.upload-btn{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:#185fa5;color:#fff;border:none;-webkit-tap-highlight-color:transparent;}
+.upload-btn:active{background:#0c447c;}
+.upload-btn:disabled{background:#b4b2a9;cursor:not-allowed;}
+
+/* ── Modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:flex-end;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:#f5f4f0;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:20px 16px 32px;}
+.modal-title{font-size:15px;font-weight:600;color:#2c2c2a;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:#888780;margin-bottom:16px;}
+.modal-close{float:right;background:none;border:none;font-size:20px;color:#888780;cursor:pointer;margin-top:-2px;}
+.modal-actions{display:flex;gap:8px;margin-top:16px;}
+.btn-del{flex:1;padding:11px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;background:#fff;color:#a32d2d;border:0.5px solid #f09595;-webkit-tap-highlight-color:transparent;}
+.btn-save{flex:2;padding:11px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:#1d9e75;color:#fff;border:none;-webkit-tap-highlight-color:transparent;}
+
+/* ── Toast ── */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#2c2c2a;color:#fff;padding:8px 18px;border-radius:99px;font-size:13px;opacity:0;transition:opacity 0.18s;pointer-events:none;z-index:9999;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast.show{opacity:1;}
+
+/* ── Upload status ── */
+.upload-status{font-size:12px;color:#5f5e5a;text-align:center;padding:6px 0;display:none;}
+.upload-status.show{display:block;}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="toast" id="toast"></div>
+
+<!-- ════ S1: 情境選擇 ════ -->
+<div class="screen active" id="s-scene">
+  <div class="page-title">選擇作業情境</div>
+  <div class="page-sub">選擇後填寫基本資料，再開始掃碼</div>
+  <button class="scene-btn" onclick="selectScene('transfer')">
+    <div class="scene-icon" style="background:#faeeda;">🔄</div>
+    <div><div class="scene-btn-label">調撥出庫</div><div class="scene-btn-desc">清點調撥轉移商品，上傳至雲端</div></div>
+  </button>
+  <button class="scene-btn" onclick="selectScene('stock')">
+    <div class="scene-icon" style="background:#eaf3de;">📋</div>
+    <div><div class="scene-btn-label">盤點庫存</div><div class="scene-btn-desc">清點指定店櫃現有商品數量</div></div>
+  </button>
+  <button class="scene-btn" onclick="selectScene('arrival')">
+    <div class="scene-icon" style="background:#e6f1fb;">📦</div>
+    <div><div class="scene-btn-label">到貨驗收</div><div class="scene-btn-desc">核對到貨商品數量（本機匯出）</div></div>
+  </button>
+  <div style="height:16px;"></div>
+  <button class="day-summary-btn" onclick="showDayList()">
+    <span class="day-summary-label">📂 當日單據清單</span>
+    <span class="day-summary-count" id="home-doc-count">0 筆單據</span>
+  </button>
+</div>
+
+<!-- ════ S2: 基本資料 ════ -->
+<div class="screen" id="s-info">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goScene()">&#8592;</button>
+    <span class="top-bar-title" id="info-title"></span>
+    <span class="badge" id="info-badge"></span>
+  </div>
+  <div id="info-fields"></div>
+  <button class="next-btn" onclick="goScanner()">開始掃描 →</button>
+</div>
+
+<!-- ════ S3: 掃碼 ════ -->
+<div class="screen" id="s-scan">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goInfo()">&#8592;</button>
+    <span class="top-bar-title" id="scan-title">掃碼記錄</span>
+    <span class="badge" id="scan-badge"></span>
+  </div>
+  <div class="info-strip" id="info-strip"></div>
+
+  <button class="cam-toggle-btn" id="cam-toggle-btn" onclick="toggleCamera()">
+    <span>📷</span><span id="cam-btn-label">開啟相機掃碼</span>
+  </button>
+  <div class="camera-wrap" id="camera-wrap">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <div class="camera-overlay"><div class="scan-frame"></div></div>
+    <div class="camera-hint">將條碼對準框內，自動辨識</div>
+  </div>
+  <canvas id="scan-canvas" style="display:none;"></canvas>
+
+  <div class="scan-row">
+    <input class="scan-input" id="scan-input" type="text" inputmode="none" placeholder="掃描條碼 / 手動輸入" autocomplete="off" onkeydown="if(event.key==='Enter')addBarcode()">
+    <button class="scan-add-btn" onclick="addBarcode()">＋ 新增</button>
+  </div>
+  <div class="qty-row">
+    <span class="qty-label">本次數量</span>
+    <button class="qty-btn" onclick="changeQty(-1)">−</button>
+    <span class="qty-num" id="qty-display">1</span>
+    <button class="qty-btn" onclick="changeQty(1)">+</button>
+  </div>
+
+  <div class="divider"></div>
+  <div class="list-header">
+    <span class="list-label">已掃清單　<span id="item-count" style="color:#2c2c2a;font-weight:600;">0</span> 件</span>
+    <button class="clear-btn" onclick="clearAll()">全部清除</button>
+  </div>
+  <div class="item-list" id="item-list">
+    <div class="empty-state"><div class="empty-icon">📷</div>尚未掃描任何條碼</div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="home-btn" onclick="goSceneFromScan()" title="回首頁">🏠</button>
+    <button class="finish-btn" onclick="finishDoc()">完成單據 →</button>
+  </div>
+</div>
+
+<!-- ════ S4: 當日單據清單 ════ -->
+<div class="screen" id="s-daylist">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goScene()">&#8592;</button>
+    <span class="top-bar-title">當日單據清單</span>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="search-barcode" type="text" placeholder="搜尋商品條碼" oninput="renderDayList()">
+  </div>
+  <div class="doc-list" id="doc-list">
+    <div class="empty-state"><div class="empty-icon">📂</div>今日尚無已完成的單據</div>
+  </div>
+  <div class="upload-status" id="upload-status"></div>
+  <div class="upload-bar">
+    <button class="upload-btn" id="upload-btn" onclick="uploadAll()">☁ 確認上傳至雲端</button>
+  </div>
+</div>
+
+<!-- ════ Modal: 單據編輯 ════ -->
+<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    <div class="modal-title" id="modal-title">編輯單據</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div id="modal-strip"></div>
+    <div class="divider"></div>
+    <div class="list-header">
+      <span class="list-label">條碼清單　<span id="modal-count" style="color:#2c2c2a;font-weight:600;">0</span> 件</span>
+    </div>
+    <div class="item-list" id="modal-item-list" style="max-height:280px;"></div>
+    <div class="modal-actions">
+      <button class="btn-del" onclick="deleteDoc()">刪除單據</button>
+      <button class="btn-save" onclick="saveModal()">儲存修改</button>
+    </div>
+  </div>
+</div>
+</div><!-- .app -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// CONFIG — 填入你的 GAS Web App URL
+// ═══════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzVti0prFGSVqTXoeriBE6Ib5zXWjF26ZZYcEQD5T311MURbyl-imdX0EL-YbixfPw/exec';
+
+// ═══════════════════════════════════════════
+// STORE LIST (auto-updated by update_stores.py)
+// ═══════════════════════════════════════════
+// UPDATE_STORES_START
+const STORES = [{"code": "AS04", "name": "敦南AS店"}, {"code": "AS05", "name": "敦南LADY店"}, {"code": "AS07", "name": "南西大碼店"}, {"code": "AS10", "name": "大安店"}, {"code": "AS12", "name": "西門大碼店"}, {"code": "AS15", "name": "逢甲店"}, {"code": "AS17", "name": "一中店"}, {"code": "AS24", "name": "南西LADY店"}, {"code": "AS25", "name": "一中LADY店"}, {"code": "AS29", "name": "一中大碼店"}, {"code": "AS35", "name": "新竹巨城LADY店"}, {"code": "AS37", "name": "南港CITYLINK店"}, {"code": "AS38", "name": "南紡LADY店"}, {"code": "AS40", "name": "中山一店"}, {"code": "AS44", "name": "文心大碼店"}, {"code": "AS45", "name": "高雄夢時代店"}, {"code": "AS46", "name": "岡山LADY店"}, {"code": "AS49", "name": "敦南大碼店"}, {"code": "AS51", "name": "麗寶OUTLET店"}, {"code": "AS52", "name": "中港新光店"}, {"code": "AS57", "name": "南西AS店"}, {"code": "AS59", "name": "左營新光店"}, {"code": "AS61", "name": "西門AS店"}, {"code": "AS62", "name": "南西IP店"}, {"code": "AS63", "name": "華泰OUTLET店"}, {"code": "AS64", "name": "夢時代大碼店"}, {"code": "AS66", "name": "台中遠百店"}, {"code": "AS68", "name": "樹林大碼店"}, {"code": "AS69", "name": "文心LADY店"}, {"code": "AS70", "name": "西門三店"}, {"code": "AS71", "name": "中和環球店"}, {"code": "AS72", "name": "桃園統領店"}, {"code": "AS73", "name": "新莊宏匯店"}, {"code": "AS77", "name": "忠孝CHIC.A店"}, {"code": "AS79", "name": "高雄漢神CHIC.A店"}, {"code": "AS81", "name": "高雄漢神LADY店"}, {"code": "AS82", "name": "高雄夢時代CHIC.A店"}, {"code": "AS83", "name": "三多遠百店"}, {"code": "AS84", "name": "嘉義秀泰店"}, {"code": "AS86", "name": "統領大碼店"}, {"code": "AS88", "name": "士林一店"}, {"code": "AS89", "name": "桃園大江店"}, {"code": "AS92", "name": "信義ATT店"}, {"code": "AS93", "name": "嘉義文化一店"}, {"code": "AS95", "name": "桃園台茂店"}, {"code": "AS96", "name": "桃園台茂AS店"}, {"code": "AS97", "name": "嘉義大碼店"}, {"code": "AT02", "name": "板橋遠百LADY店"}, {"code": "AT03", "name": "新台南FOCUS店"}, {"code": "AT04", "name": "大江大碼店"}, {"code": "AT05", "name": "南紡店"}, {"code": "AT07", "name": "台中漢神店"}, {"code": "AT08", "name": "台南三井OUTLET店"}, {"code": "AT10", "name": "高雄夢時代IP店"}, {"code": "AT06", "name": "板橋遠百特賣倉"}, {"code": "AT01", "name": "板橋遠百大碼店"}];
+// UPDATE_STORES_END
+
+// ═══════════════════════════════════════════
+// TRANSFER CATEGORIES (auto-updated by update_stores.py)
+// ═══════════════════════════════════════════
+// UPDATE_CATS_START
+const TRANSFER_CATS = [{"code": "01", "name": "轉貨"}, {"code": "03", "name": "代寄"}, {"code": "04", "name": "瑕疵"}, {"code": "05", "name": "商借"}, {"code": "06", "name": "支援官網"}, {"code": "07", "name": "撤貨"}, {"code": "08", "name": "調貨"}];
+// UPDATE_CATS_END
+
+// ═══════════════════════════════════════════
+// SCENE CONFIG
+// ═══════════════════════════════════════════
+const SCENE_CFG = {
+  stock:{
+    label:'盤點庫存', badge:'badge-stock', upload:true,
+    fields:[
+      {key:'emp_id', label:'使用人員員編', type:'text', req:true, placeholder:'請輸入員編'},
+      {key:'date', label:'盤點日期', type:'date', req:true},
+      {key:'store', label:'盤點店櫃', type:'store', req:true},
+    ]
+  },
+  arrival:{
+    label:'到貨驗收', badge:'badge-arrival', upload:false,
+    fields:[
+      {key:'emp_id', label:'使用人員員編', type:'text', req:true, placeholder:'請輸入員編'},
+      {key:'date', label:'到貨日期', type:'date', req:true},
+      {key:'to_store', label:'轉入店櫃（收貨方）', type:'store', req:true},
+      {key:'from_store', label:'轉出店櫃（發貨方）', type:'store', req:false},
+      {key:'po', label:'調撥單號', type:'text', req:false, placeholder:'選填'},
+    ]
+  },
+  transfer:{
+    label:'調撥出庫', badge:'badge-transfer', upload:true,
+    fields:[
+      {key:'emp_id', label:'使用人員員編', type:'text', req:true, placeholder:'請輸入員編'},
+      {key:'date', label:'調撥日期', type:'date', req:true},
+      {key:'cat', label:'調撥類別', type:'cat', req:true},
+      {key:'from_store', label:'轉出店櫃', type:'store', req:true},
+      {key:'to_store', label:'轉入店櫃', type:'store', req:true},
+    ]
+  }
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let scene='', meta={}, items=[], inputQty=1;
+let editingDocId=null, modalItems=[];
+let cameraActive=false, videoStream=null, scanInterval=null;
+
+// LocalStorage key = scene_label + YYYYMMDD
+function todayStr(){return new Date().toISOString().slice(0,10).replace(/-/g,'');}
+function lsKey(sceneName){ return sceneName+'_'+todayStr(); }
+
+function loadDocs(sceneName){
+  try{ return JSON.parse(localStorage.getItem(lsKey(sceneName))||'[]'); }
+  catch(e){ return []; }
+}
+function saveDocs(sceneName, docs){
+  localStorage.setItem(lsKey(sceneName), JSON.stringify(docs));
+}
+function allTodayDocs(){
+  const all=[];
+  for(const k of Object.keys(localStorage)){
+    if(!k.includes('_')) continue;
+    const dateStr=k.split('_').pop();
+    if(dateStr!==todayStr()) continue;
+    try{
+      const docs=JSON.parse(localStorage.getItem(k)||'[]');
+      docs.forEach(d=>all.push(d));
+    }catch(e){}
+  }
+  all.sort((a,b)=>a.time.localeCompare(b.time));
+  return all;
+}
+
+function genDocId(sceneName){
+  const docs=loadDocs(sceneName);
+  const n=docs.length+1;
+  return sceneName.slice(0,2)+todayStr()+'_'+String(n).padStart(3,'0');
+}
+function totalQty(itemsArr){ return itemsArr.reduce((s,i)=>s+i.qty,0); }
+function storeName(code){
+  if(!code) return '';
+  const s=STORES.find(x=>x.code===code);
+  return s?code+' '+s.name:code;
+}
+function catName(code){
+  if(!code) return '';
+  const c=TRANSFER_CATS.find(x=>x.code===code);
+  return c?code+' '+c.name:code;
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function today(){ return new Date().toISOString().slice(0,10); }
+
+function goScene(){
+  stopCamera();
+  updateHomeCount();
+  show('s-scene');
+}
+function goSceneFromScan(){
+  if(items.length>0){
+    if(!confirm('離開將捨棄目前掃描中的資料，確定嗎？')) return;
+  }
+  items=[];
+  stopCamera();
+  updateHomeCount();
+  show('s-scene');
+}
+function goInfo(){ stopCamera(); show('s-info'); }
+function showDayList(){
+  renderDayList();
+  show('s-daylist');
+}
+function updateHomeCount(){
+  const all=allTodayDocs();
+  document.getElementById('home-doc-count').textContent=all.length+' 筆單據';
+}
+
+// ═══════════════════════════════════════════
+// INFO FORM
+// ═══════════════════════════════════════════
+function storeOpts(req){
+  const empty=req?'<option value="">— 請選擇 —</option>':'<option value="">— 不適用 —</option>';
+  return empty+STORES.map(s=>`<option value="${s.code}">${s.code} ${s.name}</option>`).join('');
+}
+function catOpts(){
+  return '<option value="">— 請選擇 —</option>'+
+    TRANSFER_CATS.map(c=>`<option value="${c.code}">${c.code} ${c.name}</option>`).join('');
+}
+
+function selectScene(s){
+  scene=s;
+  items=[];
+  inputQty=1;
+  buildInfoForm();
+  show('s-info');
+}
+function buildInfoForm(){
+  const cfg=SCENE_CFG[scene];
+  document.getElementById('info-title').textContent=cfg.label+'　基本資料';
+  const badge=document.getElementById('info-badge');
+  badge.textContent=cfg.label; badge.className='badge '+cfg.badge;
+  const wrap=document.getElementById('info-fields');
+  wrap.innerHTML='';
+  cfg.fields.forEach(f=>{
+    const div=document.createElement('div');
+    div.className='field';
+    const req=f.req?'<span class="req-tag">必填</span>':'';
+    div.innerHTML=`<label>${f.label}${req}</label>`;
+    if(f.type==='date') div.innerHTML+=`<input type="date" id="f_${f.key}" value="${today()}">`;
+    else if(f.type==='store') div.innerHTML+=`<select id="f_${f.key}">${storeOpts(f.req)}</select>`;
+    else if(f.type==='cat') div.innerHTML+=`<select id="f_${f.key}">${catOpts()}</select>`;
+    else div.innerHTML+=`<input type="text" id="f_${f.key}" placeholder="${f.placeholder||''}">`;
+    wrap.appendChild(div);
+  });
+}
+function getVal(key){ const el=document.getElementById('f_'+key); return el?el.value.trim():''; }
+
+function goScanner(){
+  const cfg=SCENE_CFG[scene];
+  for(const f of cfg.fields.filter(x=>x.req)){
+    if(!getVal(f.key)){showToast('請填寫「'+f.label+'」');return;}
+  }
+  meta={};
+  cfg.fields.forEach(f=>{meta[f.key]=getVal(f.key);});
+  items=[];
+  inputQty=1;
+  buildInfoStrip();
+  const sb=document.getElementById('scan-badge');
+  sb.textContent=cfg.label; sb.className='badge '+cfg.badge;
+  document.getElementById('scan-title').textContent=cfg.label;
+  show('s-scan');
+  renderList();
+  setTimeout(()=>document.getElementById('scan-input').focus(),300);
+}
+
+function buildInfoStrip(){
+  const cfg=SCENE_CFG[scene];
+  const strip=document.getElementById('info-strip');
+  strip.innerHTML=cfg.fields.map(f=>{
+    let val=meta[f.key]||'—';
+    if(f.type==='store') val=storeName(meta[f.key])||'—';
+    if(f.type==='cat') val=catName(meta[f.key])||'—';
+    return `<div class="info-row"><span>${f.label}</span><span class="info-val">${val}</span></div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// CAMERA
+// ═══════════════════════════════════════════
+async function toggleCamera(){
+  cameraActive?stopCamera():await startCamera();
+}
+async function startCamera(){
+  try{
+    videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const v=document.getElementById('camera-video');
+    v.srcObject=videoStream;
+    document.getElementById('camera-wrap').classList.add('active');
+    document.getElementById('cam-toggle-btn').classList.add('on');
+    document.getElementById('cam-btn-label').textContent='關閉相機';
+    cameraActive=true;
+    v.addEventListener('loadedmetadata',()=>{
+      // continuous scan — no pause between frames
+      scanInterval=setInterval(scanFrame,200);
+    },{once:true});
+  }catch(e){
+    showToast('⚠ 相機授權失敗，請在瀏覽器設定中允許');
+  }
+}
+function stopCamera(){
+  if(scanInterval){clearInterval(scanInterval);scanInterval=null;}
+  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null;}
+  document.getElementById('camera-wrap').classList.remove('active');
+  document.getElementById('cam-toggle-btn').classList.remove('on');
+  document.getElementById('cam-btn-label').textContent='開啟相機掃碼';
+  cameraActive=false;
+}
+
+let lastScanned='', lastScannedTs=0;
+function scanFrame(){
+  const v=document.getElementById('camera-video');
+  if(v.readyState!==v.HAVE_ENOUGH_DATA) return;
+  const canvas=document.getElementById('scan-canvas');
+  canvas.width=v.videoWidth; canvas.height=v.videoHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(v,0,0);
+  const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+  if(code&&code.data){
+    const now=Date.now();
+    // 同一條碼 1.5 秒內不重複觸發，不同條碼立即觸發
+    if(code.data===lastScanned && now-lastScannedTs<1500) return;
+    lastScanned=code.data;
+    lastScannedTs=now;
+    document.getElementById('scan-input').value=code.data;
+    addBarcode(true); // silent=true，不彈 toast 干擾連掃
+  }
+}
+
+// ═══════════════════════════════════════════
+// SCAN LIST
+// ═══════════════════════════════════════════
+function changeQty(d){
+  inputQty=Math.max(1,inputQty+d);
+  document.getElementById('qty-display').textContent=inputQty;
+}
+function addBarcode(silent=false){
+  const input=document.getElementById('scan-input');
+  const raw=input.value.trim();
+  if(!raw){if(!silent)showToast('請輸入條碼');return;}
+  const ex=items.find(i=>i.barcode===raw);
+  if(ex){
+    ex.qty+=inputQty;
+    if(!silent) showToast('累加 +'+inputQty+'，共 '+ex.qty);
+    else vibrate();
+  } else {
+    items.push({barcode:raw,qty:inputQty});
+    if(!silent) showToast('已新增');
+    else vibrate();
+  }
+  input.value='';
+  inputQty=1;
+  document.getElementById('qty-display').textContent=1;
+  renderList();
+}
+function vibrate(){ if(navigator.vibrate) navigator.vibrate(40); }
+
+function renderList(){
+  const list=document.getElementById('item-list');
+  const total=totalQty(items);
+  document.getElementById('item-count').textContent=total;
+  if(!items.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">📷</div>尚未掃描任何條碼</div>';
+    return;
+  }
+  list.innerHTML=items.slice().reverse().map((item,ri)=>{
+    const i=items.length-1-ri;
+    return `<div class="item-row">
+      <span class="item-barcode">${item.barcode}</span>
+      <div class="item-qty-wrap">
+        <button class="iq-btn" onclick="adjQty(${i},-1)">−</button>
+        <span class="iq-num">${item.qty}</span>
+        <button class="iq-btn" onclick="adjQty(${i},1)">+</button>
+      </div>
+      <button class="item-del" onclick="delItem(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+function adjQty(i,d){ items[i].qty=Math.max(1,items[i].qty+d); renderList(); }
+function delItem(i){ items.splice(i,1); renderList(); }
+function clearAll(){ if(!items.length)return; if(confirm('確定清除所有條碼？')){ items=[]; renderList(); } }
+
+function finishDoc(){
+  if(!items.length){showToast('尚未掃描任何條碼');return;}
+  const cfg=SCENE_CFG[scene];
+  const now=new Date();
+  const timeStr=now.toTimeString().slice(0,5);
+  const doc={
+    id: genDocId(cfg.label),
+    scene: scene,
+    label: cfg.label,
+    time: timeStr,
+    date: meta.date||today(),
+    meta: {...meta},
+    items: items.map(i=>({...i})),
+    uploaded: false
+  };
+  const docs=loadDocs(cfg.label);
+  docs.push(doc);
+  saveDocs(cfg.label,docs);
+  items=[];
+  stopCamera();
+  showToast('單據 '+doc.id+' 已暫存');
+  updateHomeCount();
+  setTimeout(()=>{ renderDayList(); show('s-daylist'); },500);
+}
+
+// ═══════════════════════════════════════════
+// DAY LIST
+// ═══════════════════════════════════════════
+function renderDayList(){
+  const q=(document.getElementById('search-barcode').value||'').trim();
+  const all=allTodayDocs();
+  const list=document.getElementById('doc-list');
+  if(!all.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">📂</div>今日尚無已完成的單據</div>';
+    return;
+  }
+  const filtered=q? all.filter(d=>d.items.some(i=>i.barcode.includes(q))): all;
+  if(!filtered.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div>找不到包含該條碼的單據</div>';
+    return;
+  }
+  list.innerHTML=filtered.map(doc=>{
+    const hitBadge=q?`<span class="search-hit">含 ${q}</span>`:'';
+    const uploadMark=doc.uploaded?'<span style="font-size:11px;color:#3b6d11;background:#eaf3de;padding:2px 7px;border-radius:99px;">已上傳</span>':'';
+    return `<div class="doc-card" onclick="openModal('${doc.id}','${doc.scene}')">
+      <div class="doc-card-top">
+        <span class="doc-card-id">${doc.id}</span>
+        <span class="doc-card-time">${doc.date} ${doc.time}</span>
+      </div>
+      <div class="doc-card-meta">
+        <span class="badge badge-${doc.scene==='stock'?'stock':doc.scene==='arrival'?'arrival':'transfer'}" style="font-size:11px;">${doc.label}</span>
+        <span class="doc-card-count">${totalQty(doc.items)} 件</span>
+        ${uploadMark}${hitBadge}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// MODAL — edit doc
+// ═══════════════════════════════════════════
+function openModal(docId, sceneName){
+  const docs=loadDocs(SCENE_CFG[sceneName].label);
+  const doc=docs.find(d=>d.id===docId);
+  if(!doc) return;
+  editingDocId=docId;
+  editingScene=sceneName;
+  modalItems=doc.items.map(i=>({...i}));
+
+  document.getElementById('modal-title').textContent='編輯單據 '+doc.id;
+  document.getElementById('modal-sub').textContent=doc.date+' '+doc.time+'　'+doc.label;
+
+  const cfg=SCENE_CFG[sceneName];
+  document.getElementById('modal-strip').innerHTML=cfg.fields.map(f=>{
+    let val=doc.meta[f.key]||'—';
+    if(f.type==='store') val=storeName(doc.meta[f.key])||'—';
+    if(f.type==='cat') val=catName(doc.meta[f.key])||'—';
+    return `<div class="info-row"><span>${f.label}</span><span class="info-val">${val}</span></div>`;
+  }).join('');
+
+  renderModalItems();
+  document.getElementById('modal-bg').classList.add('show');
+}
+function renderModalItems(){
+  const total=totalQty(modalItems);
+  document.getElementById('modal-count').textContent=total;
+  const list=document.getElementById('modal-item-list');
+  if(!modalItems.length){list.innerHTML='<div class="empty-state" style="padding:16px 0;">無條碼</div>';return;}
+  list.innerHTML=modalItems.slice().reverse().map((item,ri)=>{
+    const i=modalItems.length-1-ri;
+    return `<div class="item-row">
+      <span class="item-barcode">${item.barcode}</span>
+      <div class="item-qty-wrap">
+        <button class="iq-btn" onclick="adjModal(${i},-1)">−</button>
+        <span class="iq-num">${item.qty}</span>
+        <button class="iq-btn" onclick="adjModal(${i},1)">+</button>
+      </div>
+      <button class="item-del" onclick="delModal(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+function adjModal(i,d){ modalItems[i].qty=Math.max(1,modalItems[i].qty+d); renderModalItems(); }
+function delModal(i){ modalItems.splice(i,1); renderModalItems(); }
+
+function saveModal(){
+  if(!modalItems.length){showToast('清單不能為空');return;}
+  const cfg=SCENE_CFG[editingScene];
+  const docs=loadDocs(cfg.label);
+  const idx=docs.findIndex(d=>d.id===editingDocId);
+  if(idx===-1) return;
+  docs[idx].items=modalItems.map(i=>({...i}));
+  docs[idx].uploaded=false; // 修改後重置上傳狀態
+  saveDocs(cfg.label,docs);
+  closeModalBtn();
+  renderDayList();
+  showToast('已儲存修改');
+}
+function deleteDoc(){
+  if(!confirm('確定刪除這筆單據？')) return;
+  const cfg=SCENE_CFG[editingScene];
+  const docs=loadDocs(cfg.label).filter(d=>d.id!==editingDocId);
+  saveDocs(cfg.label,docs);
+  closeModalBtn();
+  updateHomeCount();
+  renderDayList();
+  showToast('單據已刪除');
+}
+function closeModal(e){ if(e.target===document.getElementById('modal-bg')) closeModalBtn(); }
+function closeModalBtn(){ document.getElementById('modal-bg').classList.remove('show'); }
+let editingScene='';
+
+// ═══════════════════════════════════════════
+// UPLOAD — only stock & transfer
+// ═══════════════════════════════════════════
+async function uploadAll(){
+  const all=allTodayDocs().filter(d=>!d.uploaded && SCENE_CFG[d.scene].upload);
+  if(!all.length){ showToast('沒有待上傳的單據（到貨驗收不上傳）'); return; }
+
+  const btn=document.getElementById('upload-btn');
+  const status=document.getElementById('upload-status');
+  btn.disabled=true; btn.textContent='上傳中…';
+  status.textContent='正在上傳 '+all.length+' 筆單據…';
+  status.classList.add('show');
+
+  // Build payload rows
+  const rows=[];
+  all.forEach(doc=>{
+    const cfg=SCENE_CFG[doc.scene];
+    doc.items.forEach(item=>{
+      if(doc.scene==='stock'){
+        rows.push({
+          scene:'盤點庫存',
+          doc_id: doc.id,
+          date: doc.date,
+          emp_id: doc.meta.emp_id||'',
+          store_code: doc.meta.store||'',
+          store_name: storeName(doc.meta.store),
+          barcode: item.barcode,
+          qty: item.qty
+        });
+      } else if(doc.scene==='transfer'){
+        rows.push({
+          scene:'調撥出庫',
+          doc_id: doc.id,
+          date: doc.date,
+          emp_id: doc.meta.emp_id||'',
+          cat_code: doc.meta.cat||'',
+          cat_name: catName(doc.meta.cat),
+          from_store_code: doc.meta.from_store||'',
+          from_store_name: storeName(doc.meta.from_store),
+          to_store_code: doc.meta.to_store||'',
+          to_store_name: storeName(doc.meta.to_store),
+          barcode: item.barcode,
+          qty: item.qty
+        });
+      }
+    });
+  });
+
+  try{
+    const res=await fetch(GAS_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({rows, upload_time: new Date().toISOString()})
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+
+    // Mark as uploaded
+    all.forEach(doc=>{
+      const cfg=SCENE_CFG[doc.scene];
+      const docs=loadDocs(cfg.label);
+      const idx=docs.findIndex(d=>d.id===doc.id);
+      if(idx!==-1){ docs[idx].uploaded=true; saveDocs(cfg.label,docs); }
+    });
+
+    btn.textContent='☁ 確認上傳至雲端';
+    btn.disabled=false;
+    status.textContent='✅ 上傳成功！共 '+all.length+' 筆單據';
+    renderDayList();
+    updateHomeCount();
+    showToast('上傳完成');
+  }catch(e){
+    btn.textContent='☁ 確認上傳至雲端';
+    btn.disabled=false;
+    status.textContent='❌ 上傳失敗：'+e.message;
+    showToast('上傳失敗，請稍後再試');
+  }
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// Init
+updateHomeCount();
+</script>
+</body>
+</html>
