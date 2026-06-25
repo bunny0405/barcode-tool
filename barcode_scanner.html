@@ -187,10 +187,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei
     <div class="camera-overlay"><div class="scan-frame"></div></div>
     <div class="camera-hint">將條碼對準框內，自動辨識</div>
   </div>
-  <canvas id="scan-canvas" style="display:none;"></canvas>
 
   <div class="scan-row">
-    <input class="scan-input" id="scan-input" type="text" inputmode="none" placeholder="掃描條碼 / 手動輸入" autocomplete="off" onkeydown="if(event.key==='Enter')addBarcode()">
+    <input class="scan-input" id="scan-input" type="text" inputmode="text" placeholder="掃描條碼 / 手動輸入" autocomplete="off" onkeydown="if(event.key==='Enter')addBarcode()">
     <button class="scan-add-btn" onclick="addBarcode()">＋ 新增</button>
   </div>
   <div class="qty-row">
@@ -255,25 +254,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei
 </div><!-- .app -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script>
 // ═══════════════════════════════════════════
 // CONFIG — 填入你的 GAS Web App URL
 // ═══════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzVti0prFGSVqTXoeriBE6Ib5zXWjF26ZZYcEQD5T311MURbyl-imdX0EL-YbixfPw/exec';
+const GAS_URL = 'YOUR_GAS_WEB_APP_URL_HERE';
 
 // ═══════════════════════════════════════════
 // STORE LIST (auto-updated by update_stores.py)
 // ═══════════════════════════════════════════
 // UPDATE_STORES_START
-const STORES = [{"code": "AS04", "name": "敦南AS店"}, {"code": "AS05", "name": "敦南LADY店"}, {"code": "AS07", "name": "南西大碼店"}, {"code": "AS10", "name": "大安店"}, {"code": "AS12", "name": "西門大碼店"}, {"code": "AS15", "name": "逢甲店"}, {"code": "AS17", "name": "一中店"}, {"code": "AS24", "name": "南西LADY店"}, {"code": "AS25", "name": "一中LADY店"}, {"code": "AS29", "name": "一中大碼店"}, {"code": "AS35", "name": "新竹巨城LADY店"}, {"code": "AS37", "name": "南港CITYLINK店"}, {"code": "AS38", "name": "南紡LADY店"}, {"code": "AS40", "name": "中山一店"}, {"code": "AS44", "name": "文心大碼店"}, {"code": "AS45", "name": "高雄夢時代店"}, {"code": "AS46", "name": "岡山LADY店"}, {"code": "AS49", "name": "敦南大碼店"}, {"code": "AS51", "name": "麗寶OUTLET店"}, {"code": "AS52", "name": "中港新光店"}, {"code": "AS57", "name": "南西AS店"}, {"code": "AS59", "name": "左營新光店"}, {"code": "AS61", "name": "西門AS店"}, {"code": "AS62", "name": "南西IP店"}, {"code": "AS63", "name": "華泰OUTLET店"}, {"code": "AS64", "name": "夢時代大碼店"}, {"code": "AS66", "name": "台中遠百店"}, {"code": "AS68", "name": "樹林大碼店"}, {"code": "AS69", "name": "文心LADY店"}, {"code": "AS70", "name": "西門三店"}, {"code": "AS71", "name": "中和環球店"}, {"code": "AS72", "name": "桃園統領店"}, {"code": "AS73", "name": "新莊宏匯店"}, {"code": "AS77", "name": "忠孝CHIC.A店"}, {"code": "AS79", "name": "高雄漢神CHIC.A店"}, {"code": "AS81", "name": "高雄漢神LADY店"}, {"code": "AS82", "name": "高雄夢時代CHIC.A店"}, {"code": "AS83", "name": "三多遠百店"}, {"code": "AS84", "name": "嘉義秀泰店"}, {"code": "AS86", "name": "統領大碼店"}, {"code": "AS88", "name": "士林一店"}, {"code": "AS89", "name": "桃園大江店"}, {"code": "AS92", "name": "信義ATT店"}, {"code": "AS93", "name": "嘉義文化一店"}, {"code": "AS95", "name": "桃園台茂店"}, {"code": "AS96", "name": "桃園台茂AS店"}, {"code": "AS97", "name": "嘉義大碼店"}, {"code": "AT02", "name": "板橋遠百LADY店"}, {"code": "AT03", "name": "新台南FOCUS店"}, {"code": "AT04", "name": "大江大碼店"}, {"code": "AT05", "name": "南紡店"}, {"code": "AT07", "name": "台中漢神店"}, {"code": "AT08", "name": "台南三井OUTLET店"}, {"code": "AT10", "name": "高雄夢時代IP店"}, {"code": "AT06", "name": "板橋遠百特賣倉"}, {"code": "AT01", "name": "板橋遠百大碼店"}];
+const STORES = [{"code":"AS04","name":"敦南AS店"},{"code":"AS05","name":"敦南LADY店"},{"code":"AS07","name":"南西大碼店"},{"code":"AS10","name":"大安店"},{"code":"AS12","name":"西門大碼店"},{"code":"AS15","name":"逢甲店"},{"code":"AS17","name":"一中店"},{"code":"AS24","name":"南西LADY店"},{"code":"AS25","name":"一中LADY店"},{"code":"AS29","name":"一中大碼店"},{"code":"AS35","name":"新竹巨城LADY店"},{"code":"AS37","name":"南港CITYLINK店"},{"code":"AS38","name":"南紡LADY店"},{"code":"AS40","name":"中山一店"},{"code":"AS44","name":"文心大碼店"},{"code":"AS45","name":"高雄夢時代店"},{"code":"AS46","name":"岡山LADY店"},{"code":"AS49","name":"敦南大碼店"},{"code":"AS51","name":"麗寶OUTLET店"},{"code":"AS52","name":"中港新光店"},{"code":"AS57","name":"南西AS店"},{"code":"AS59","name":"左營新光店"},{"code":"AS61","name":"西門AS店"},{"code":"AS62","name":"南西IP店"},{"code":"AS63","name":"華泰OUTLET店"},{"code":"AS64","name":"夢時代大碼店"},{"code":"AS66","name":"台中遠百店"},{"code":"AS68","name":"樹林大碼店"},{"code":"AS69","name":"文心LADY店"},{"code":"AS70","name":"西門三店"},{"code":"AS71","name":"中和環球店"},{"code":"AS72","name":"桃園統領店"},{"code":"AS73","name":"新莊宏匯店"},{"code":"AS77","name":"忠孝CHIC.A店"},{"code":"AS79","name":"高雄漢神CHIC.A店"},{"code":"AS81","name":"高雄漢神LADY店"},{"code":"AS82","name":"高雄夢時代CHIC.A店"},{"code":"AS83","name":"三多遠百店"},{"code":"AS84","name":"嘉義秀泰店"},{"code":"AS86","name":"統領大碼店"},{"code":"AS88","name":"士林一店"},{"code":"AS89","name":"桃園大江店"},{"code":"AS92","name":"信義ATT店"},{"code":"AS93","name":"嘉義文化一店"},{"code":"AS95","name":"桃園台茂店"},{"code":"AS96","name":"桃園台茂AS店"},{"code":"AS97","name":"嘉義大碼店"},{"code":"AT02","name":"板橋遠百LADY店"},{"code":"AT03","name":"新台南FOCUS店"},{"code":"AT04","name":"大江大碼店"},{"code":"AT05","name":"南紡店"},{"code":"AT07","name":"台中漢神店"},{"code":"AT08","name":"台南三井OUTLET店"},{"code":"AT10","name":"高雄夢時代IP店"}];
 // UPDATE_STORES_END
 
 // ═══════════════════════════════════════════
 // TRANSFER CATEGORIES (auto-updated by update_stores.py)
 // ═══════════════════════════════════════════
 // UPDATE_CATS_START
-const TRANSFER_CATS = [{"code": "01", "name": "轉貨"}, {"code": "03", "name": "代寄"}, {"code": "04", "name": "瑕疵"}, {"code": "05", "name": "商借"}, {"code": "06", "name": "支援官網"}, {"code": "07", "name": "撤貨"}, {"code": "08", "name": "調貨"}];
+const TRANSFER_CATS = [{"code":"01","name":"轉貨"},{"code":"03","name":"代寄"},{"code":"04","name":"瑕疵"},{"code":"05","name":"商借"},{"code":"06","name":"支援官網"},{"code":"07","name":"撤貨"},{"code":"08","name":"調貨"}];
 // UPDATE_CATS_END
 
 // ═══════════════════════════════════════════
@@ -464,56 +463,69 @@ function buildInfoStrip(){
 }
 
 // ═══════════════════════════════════════════
-// CAMERA
+// CAMERA — Quagga (支援一維條碼)
 // ═══════════════════════════════════════════
+let lastScanned='', lastScannedTs=0;
+
 async function toggleCamera(){
-  cameraActive?stopCamera():await startCamera();
+  cameraActive ? stopCamera() : await startCamera();
 }
+
 async function startCamera(){
-  try{
-    videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const v=document.getElementById('camera-video');
-    v.srcObject=videoStream;
-    document.getElementById('camera-wrap').classList.add('active');
-    document.getElementById('cam-toggle-btn').classList.add('on');
-    document.getElementById('cam-btn-label').textContent='關閉相機';
-    cameraActive=true;
-    v.addEventListener('loadedmetadata',()=>{
-      // continuous scan — no pause between frames
-      scanInterval=setInterval(scanFrame,200);
-    },{once:true});
-  }catch(e){
-    showToast('⚠ 相機授權失敗，請在瀏覽器設定中允許');
-  }
+  document.getElementById('camera-wrap').classList.add('active');
+  document.getElementById('cam-toggle-btn').classList.add('on');
+  document.getElementById('cam-btn-label').textContent='關閉相機';
+  cameraActive=true;
+
+  Quagga.init({
+    inputStream:{
+      name:'Live',
+      type:'LiveStream',
+      target: document.getElementById('camera-video'),
+      constraints:{facingMode:'environment'},
+    },
+    locator:{patchSize:'medium', halfSample:true},
+    numOfWorkers:2,
+    frequency:10,
+    decoder:{
+      readers:[
+        'code_128_reader',
+        'ean_reader',
+        'ean_8_reader',
+        'code_39_reader',
+        'upc_reader',
+        'upc_e_reader',
+      ]
+    },
+    locate:true,
+  }, function(err){
+    if(err){
+      showToast('⚠ 相機授權失敗，請允許相機存取');
+      stopCamera();
+      return;
+    }
+    Quagga.start();
+  });
+
+  Quagga.onDetected(function(result){
+    const code = result && result.codeResult && result.codeResult.code;
+    if(!code) return;
+    const now = Date.now();
+    if(code === lastScanned && now - lastScannedTs < 1500) return;
+    lastScanned = code;
+    lastScannedTs = now;
+    document.getElementById('scan-input').value = code;
+    addBarcode(true);
+  });
 }
+
 function stopCamera(){
-  if(scanInterval){clearInterval(scanInterval);scanInterval=null;}
-  if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null;}
+  try{ Quagga.offDetected(); Quagga.stop(); }catch(e){}
   document.getElementById('camera-wrap').classList.remove('active');
   document.getElementById('cam-toggle-btn').classList.remove('on');
   document.getElementById('cam-btn-label').textContent='開啟相機掃碼';
   cameraActive=false;
-}
-
-let lastScanned='', lastScannedTs=0;
-function scanFrame(){
-  const v=document.getElementById('camera-video');
-  if(v.readyState!==v.HAVE_ENOUGH_DATA) return;
-  const canvas=document.getElementById('scan-canvas');
-  canvas.width=v.videoWidth; canvas.height=v.videoHeight;
-  const ctx=canvas.getContext('2d');
-  ctx.drawImage(v,0,0);
-  const img=ctx.getImageData(0,0,canvas.width,canvas.height);
-  const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-  if(code&&code.data){
-    const now=Date.now();
-    // 同一條碼 1.5 秒內不重複觸發，不同條碼立即觸發
-    if(code.data===lastScanned && now-lastScannedTs<1500) return;
-    lastScanned=code.data;
-    lastScannedTs=now;
-    document.getElementById('scan-input').value=code.data;
-    addBarcode(true); // silent=true，不彈 toast 干擾連掃
-  }
+  lastScanned=''; lastScannedTs=0;
 }
 
 // ═══════════════════════════════════════════
